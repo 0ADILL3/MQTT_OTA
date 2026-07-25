@@ -4,14 +4,14 @@ from sys import exit
 from time import sleep as delay
 from hashlib import md5
 
-filename            = '../../../.pio/build/esp32s3/firmware.bin'
+filename            = '../../../.pio/build/esp32dev/firmware.bin'
 
-MQTT_Server         = '192.168.8.119'
+MQTT_Server         = '192.168.1.100'
 MQTT_Port           = 1883
 MQTT_Username       = ''
 MQTT_Password       = ''
 MQTT_Client_ID      = 'Python_MQTT_OTA_firmware_publisher'
-MQTT_Topic          = 'rsmd/environment/cold_storage/realtime'
+MQTT_Topic          = 'device/node_1'
 
 firmware_version    = 'v3.0'
 
