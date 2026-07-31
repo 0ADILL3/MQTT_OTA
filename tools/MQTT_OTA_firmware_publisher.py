@@ -1,4 +1,5 @@
 import paho.mqtt.client as MQTT
+import json
 from os.path import getsize
 from sys import exit
 from time import sleep as delay
@@ -13,7 +14,7 @@ MQTT_Password       = ''
 MQTT_Client_ID      = 'Python_MQTT_OTA_firmware_publisher'
 MQTT_Topic          = 'device/node_1'
 
-firmware_version    = 'v3.0'
+firmware_version    = 'v1.0'
 
 payload_chunk_size  = 4096  # 4 KB
 payload_upload_rate = 8192  # 8 KB/s
@@ -56,7 +57,12 @@ print(f'Kecepatan upload      : {payload_upload_rate} bytes/detik')
 print(f'Jumlah chunk          : {int(total_file_size/payload_chunk_size)+1} chunk')
 print(f'Total waktu upload    : {total_file_size/payload_upload_rate:.2f} detik')
 
-payload_start = f'<{total_file_size}><{payload_chunk_size}><{hash_MD5}><{firmware_version}>'
+payload_start = json.dumps({
+    "file_size": total_file_size,
+    "chunk_size": payload_chunk_size,
+    "hash_MD5": hash_MD5,
+    "version": firmware_version
+})
 MQTT_Client.publish(f'{MQTT_Topic}/MQTT_OTA/Publisher/start', payload_start, qos=1)
 
 while MQTT_OTA_status != 'BEGIN ACKNOWLEDGMENT: OK':

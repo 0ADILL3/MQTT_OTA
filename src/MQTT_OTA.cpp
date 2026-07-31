@@ -26,7 +26,7 @@ void MQTT_OTA::handle()
   if ((_MQTT_Client_status != _MQTT_Client.connected()) && (_MQTT_Client.connected() == true))
   {
     Serial.println();
-    Serial.printf("MQTT_OTA Subscribe to topic: %s\n", _MQTT_OTA_Topic);
+    Serial.printf("[MQTT_OTA] MQTT_OTA Subscribe to topic: %s\n", _MQTT_OTA_Topic);
     _MQTT_Client.subscribe((String(_MQTT_OTA_Topic)+"/MQTT_OTA/Publisher/#").c_str());
   }
   _MQTT_Client_status = _MQTT_Client.connected();
@@ -37,7 +37,7 @@ void MQTT_OTA::handle()
     {
       _MQTT_Client.publish((String(_MQTT_OTA_Topic)+"/MQTT_OTA/Subscriber/MQTT_OTA_status").c_str(), "ABORTED: TIMEOUT");
       Serial.println();
-      Serial.println("OTA Timeout! Aborting");
+      Serial.println("[MQTT_OTA] OTA Timeout! Aborting");
       Update.abort();
     }
   }
@@ -53,31 +53,30 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
 
   if (strstr(topic, "/MQTT_OTA/Publisher/start") != NULL)
   {
-    char payload_str[128];
-    size_t new_length = min(length, (sizeof(payload_str)-1));
-    memcpy(payload_str, payload, new_length);
-    payload_str[new_length] = '\0'; 
+    char payload_start[256];
+    size_t new_length = min(length, (sizeof(payload_start)-1));
+    memcpy(payload_start, payload, new_length);
+    payload_start[new_length] = '\0'; 
     
     int file_size = 0;
     uint16_t chunk_size = 0;
     char hash_MD5[33] = {0};
     
-    int parsed_items = sscanf(payload_str, "<%d><%hu><%32[^>]><%16[^>]>", &file_size, &chunk_size, hash_MD5, _new_firmware_version);
-    
-    if (parsed_items == 4)
+    StaticJsonDocument<256> doc;
+    DeserializationError json_error = deserializeJson(doc, payload_start);
+
+    if (!json_error)
     {
-      Serial.println();
-      Serial.println("Memulai proses update firmware via OTA...");
-      Serial.printf("Ukuran File      : %d bytes\n", file_size);
-      Serial.printf("Chunk Size       : %hu bytes\n", chunk_size);
-      Serial.printf("MD5 Diterima     : %s\n", hash_MD5);
-      Serial.printf("Firmware Version : %s\n", _new_firmware_version);
-      
+      file_size = doc["file_size"];
+      chunk_size = doc["chunk_size"];
+      strlcpy(hash_MD5, doc["hash_MD5"] | "", sizeof(hash_MD5));
+      strlcpy(_new_firmware_version, doc["version"] | "", sizeof(_new_firmware_version));
+
       if ((chunk_size + 256) > _MQTT_OTA_size) 
       {
         _MQTT_Client.publish((String(_MQTT_OTA_Topic)+"/MQTT_OTA/Subscriber/MQTT_OTA_status").c_str(), "ABORTED: OVERSIZED CHUNK");
         Serial.println();
-        Serial.println("OTA Dibatalkan: Chunk dari publisher melebihi kapasitas buffer");
+        Serial.println("[MQTT_OTA] OTA Dibatalkan: Chunk dari publisher melebihi kapasitas buffer");
         Update.abort();
         return;
       }
@@ -88,13 +87,13 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
       {
         _MQTT_Client.publish((String(_MQTT_OTA_Topic)+"/MQTT_OTA/Subscriber/MQTT_OTA_status").c_str(), "BEGIN ACKNOWLEDGMENT: OK");
         Serial.println();
-        Serial.println("Menerima data OTA...");
+        Serial.println("[MQTT_OTA] Menerima data OTA...");
       }
       else
       {
         _MQTT_Client.publish((String(_MQTT_OTA_Topic)+"/MQTT_OTA/Subscriber/MQTT_OTA_status").c_str(), "BEGIN ACKNOWLEDGMENT: FAILED");
         Serial.println();
-        Serial.printf("Update.begin() gagal. Error=%d\n", Update.getError());
+        Serial.printf("[MQTT_OTA] Update.begin() gagal. Error=%d\n", Update.getError());
         Update.abort();
         return;
       }
@@ -103,7 +102,8 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
     {
       _MQTT_Client.publish((String(_MQTT_OTA_Topic)+"/MQTT_OTA/Subscriber/MQTT_OTA_status").c_str(), "ABORTED: INVALID FORMAT");
       Serial.println();
-      Serial.println("Format payload START tidak valid! Pastikan format: <file_size><chunk_size><hash_MD5><firmware_version>");
+      Serial.print("[MQTT_OTA] Format payload START tidak valid (JSON Error): ");
+      Serial.println(json_error.c_str());
       Update.abort();
       return;
     }
@@ -115,20 +115,20 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
   else if (strstr(topic, "/MQTT_OTA/Publisher/end") != NULL)
   {
     Serial.println();
-    Serial.println("Menerima sinyal END...");
+    Serial.println("[MQTT_OTA] Menerima sinyal END...");
     
     if (Update.end(true))
     {
       _MQTT_Client.publish((String(_MQTT_OTA_Topic)+"/MQTT_OTA/Subscriber/MQTT_OTA_status").c_str(), "FIRMWARE VALIDATION: VALID");
       Serial.println();
-      Serial.println("OTA Selesai dan MD5 Valid!");
+      Serial.println("[MQTT_OTA] OTA Selesai dan MD5 Valid!");
       
-      Serial.printf("Saving Firmware Version: %s\n", _new_firmware_version);
+      Serial.printf("[MQTT_OTA] Saving Firmware Version: %s\n", _new_firmware_version);
       _prefs.begin("firmware_ver", false);
       _prefs.putString("version", _new_firmware_version);
       _prefs.end();
 
-      Serial.println("Restarting...");
+      Serial.println("[MQTT_OTA] Restarting...");
       Serial.println();
       ESP.restart();
     }
@@ -136,7 +136,7 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
     {
       _MQTT_Client.publish((String(_MQTT_OTA_Topic)+"/MQTT_OTA/Subscriber/MQTT_OTA_status").c_str(), "FIRMWARE VALIDATION: INVALID");
       Serial.println();
-      Serial.print("OTA Gagal (Mungkin MD5 Invalid)! Kode Error: ");
+      Serial.print("[MQTT_OTA] OTA Gagal (Mungkin MD5 Invalid)! Kode Error: ");
       Serial.println(Update.getError());
       Update.abort();
       return;

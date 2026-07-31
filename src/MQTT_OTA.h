@@ -4,6 +4,7 @@
 #include <PubSubClient.h>
 #include <Update.h>
 #include <Preferences.h>
+#include <ArduinoJson.h>
 
 class MQTT_OTA
 {
