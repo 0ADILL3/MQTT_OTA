@@ -22,6 +22,7 @@ class MQTT_OTA
     unsigned long _last_time = 0;
   
   public:
+    // Initialize MQTT OTA parameters
     MQTT_OTA(
       PubSubClient &client,
       const char *topic,
@@ -29,8 +30,12 @@ class MQTT_OTA
       uint16_t size = 8192
     );
 
+    // Initialize MQTT OTA settings
     void begin();
+    // Handle MQTT OTA process and timeout
     void handle();
+    // Process MQTT OTA messages
     void MQTT_OTA_callback(char *topic, byte *payload, unsigned int length);
+    // Get current firmware version
     String get_firmware_version();
 };
