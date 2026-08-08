@@ -3,7 +3,7 @@ import json
 from os.path import getsize
 from sys import exit
 from time import sleep as delay
-from hashlib import md5
+from hashlib import md5 as MD5
 
 filename            = '../../../.pio/build/esp32dev/firmware.bin'
 
@@ -14,7 +14,7 @@ MQTT_Password       = ''
 MQTT_Client_ID      = 'Python_MQTT_OTA_firmware_publisher'
 MQTT_Topic          = 'device/node_1'
 
-firmware_version    = 'v1.0'
+firmware_version    = 'v1.0.0'
 
 payload_chunk_size  = 4096  # 4 KB
 payload_upload_rate = 8192  # 8 KB/s
@@ -24,7 +24,7 @@ timeout             = 0
 
 
 def calculate_MD5(file_path, chunk_size):
-    hash_MD5 = md5()
+    hash_MD5 = MD5()
     with open(file_path, 'rb') as f:
         for chunk in iter(lambda: f.read(chunk_size), b''):
             hash_MD5.update(chunk)

@@ -16,9 +16,7 @@ const char *MQTT_Topic     = "device/node_1";
 
 WiFiClient ESP32_Client;
 PubSubClient Client_MQTT(ESP32_Client);
-
-// PERBAIKAN 1: Masukkan referensi client DAN target topic secara bersamaan
-MQTT_OTA MQTT_OTA_Client(Client_MQTT, MQTT_Topic);
+MQTT_OTA MQTT_OTA_Client(Client_MQTT);
 
 void setup_WiFi()
 {
@@ -36,7 +34,6 @@ void setup_WiFi()
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
-  // Serahkan penanganan topik OTA ke library
   MQTT_OTA_Client.MQTT_OTA_callback(topic, payload, length);
 }
 
@@ -50,7 +47,7 @@ void connect_MQTT()
   if (Client_MQTT.connect(MQTT_Client_ID, MQTT_Username, MQTT_Password))
   {
     Serial.println("OK");
-    // Library akan melakukan auto-subscribe ke target topik di dalam fungsi loop
+    // Library akan melakukan auto-subscribe ke target topik di dalam fungsi handle()
   }
   else
   {
@@ -67,7 +64,7 @@ void setup() {
   Client_MQTT.setCallback(callback);
   
   // Ini otomatis mengeksekusi inisialisasi Preferences dan setBufferSize(8192)
-  MQTT_OTA_Client.begin(); 
+  MQTT_OTA_Client.begin(MQTT_Topic); 
 }
 
 void loop() {
