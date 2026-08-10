@@ -15,9 +15,9 @@ Library ini menggunakan fitur bawaan inti ESP32 dan *library* pihak ketiga berik
 - `WiFi.h`, `Update.h`, `Preferences.h` dan `ArduinoJson` (Bawaan ESP32 Core)
 - `PubSubClient.h` oleh Nick O'Leary
 
-## 📡 Alur Topik MQTT (Topic Structure)
-Library ini bekerja berdasarkan prefix topik dasar yang didaftarkan. Topic dapat didaftarkan melalui `subscribe(topic)`. Jika base topic adalah `device/node_1`, maka library akan merespons sub-topik berikut:
-- **`[BASE_TOPIC]/MQTT_OTA/Publisher/start`** : Menerima ukuran file, ukuran chunk, hash MD5 dan firware version dengan format:
+## 🔀 Alur Topik MQTT (Topic Structure)
+Library ini bekerja berdasarkan prefix topik dasar yang didaftarkan pada fungsi inisialisasi. Jika base topic adalah `device/node_1`, maka library akan merespons sub-topik berikut:
+- **`[BASE_TOPIC]/MQTT_OTA/Publisher/begin`** : Menerima ukuran file, ukuran chunk, hash MD5 dan firmware version dengan format:
    ```json
    {
      "file_size": 987654,
@@ -28,7 +28,7 @@ Library ini bekerja berdasarkan prefix topik dasar yang didaftarkan. Topic dapat
    ```
 - **`[BASE_TOPIC]/MQTT_OTA/Publisher/data`**  : Menerima potongan (chunk) file `.bin`.
 - **`[BASE_TOPIC]/MQTT_OTA/Publisher/end`**   : Sinyal bahwa transmisi selesai dan proses flashing bisa divalidasi.
-- **`[BASE_TOPIC]/MQTT_OTA/Subscriber/MQTT_OTA_status`** : Topik *feedback* dari ESP ke Broker mengenai status OTA (OK, FAILED, TIMEOUT).
+- **`[BASE_TOPIC]/MQTT_OTA/Subscriber/status`** : Topik *feedback* dari ESP ke Broker mengenai status OTA (OK, FAILED, TIMEOUT).
 
 ## 🛠️ Cara Penggunaan (Basic Usage)
 Lihat folder `examples/Basic_MQTT_OTA/Basic_MQTT_OTA.ino` untuk implementasi lengkapnya.
@@ -65,7 +65,7 @@ Jalankan script python tersebut untuk memulai OTA
 
 1. Buka script `MQTT_OTA_firmware_publisher.py`
 2. Atur lokasi filename untuk firmware baru yang akan dipublish
-3. Sesuaikan parameter seperti `MQTT_Server`, `MQTT_Topic` sesuai dengan parameter firmware lama, dan parameter `payload_max_buffer_size` serta `payload_uplad_rate` sesuai kebutuhan. (default: 8192) sesuai kemampuan dan stabilitas jaringan.
+3. Sesuaikan parameter seperti `MQTT_Server`, `MQTT_Topic` sesuai dengan parameter firmware lama, dan parameter `payload_max_buffer_size` serta `payload_uplad_rate` sesuai kebutuhan. (default: 16384) sesuai kemampuan dan stabilitas jaringan.
 4. Jalankan script dan pantau progress nya melalui `python terminal` atau dapat juga dipantau melalui dashboard MQTT
-5. Payload `FIRMWARE VALIDATION: VALID` menunjukkan proses MD5 match. payload `MQTT_OTA_DONE` menunjukkan proses upload firmware telah selesai dan ESP32 otomatis restart
+5. Payload `END: FIRMWARE VALID` menunjukkan proses MD5 match. payload `MQTT_OTA_DONE` menunjukkan proses upload firmware telah selesai dan ESP32 otomatis restart
 6. selesai

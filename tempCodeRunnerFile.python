@@ -1,0 +1,15 @@
+from time import sleep
+
+def progress_bar(current_percentage: float, bar_length: int = 20) -> str:
+    if current_percentage == 0:
+        return f'STARTING:   [{" "*bar_length}] ...0.00 %'
+    elif current_percentage > 0 and current_percentage < 100:
+        return f'PUBLISHING: [{"="*int(current_percentage/100*bar_length) + " "*(bar_length-int(current_percentage/100*bar_length))}] ...{current_percentage:.2f} %'
+    elif current_percentage == 100:
+        return f'FINISH:     [{"="*bar_length}] ...100 %'
+
+for i in range(10001):
+    print(progress_bar(i/100), end='\r')
+    if i == 0 or i == 10000:
+        sleep(1)
+    sleep(0.001)
