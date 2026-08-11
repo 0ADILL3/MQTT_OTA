@@ -4,9 +4,17 @@ MQTT_OTA::MQTT_OTA(PubSubClient &client) : MQTT_Client_(client) {}
 
 void MQTT_OTA::begin(const char *topic, uint16_t timeout, uint16_t size)
 {
-  topic_ = topic;
   timeout_ = timeout;
   size_ = size;
+  
+  strlcpy(topic_, topic, sizeof(topic_));
+
+  size_t len = strlen(topic_);
+  while(len > 0 && (topic_[len-1] == '#' || topic_[len-1] == '/')) 
+  {
+    topic_[len-1] = '\0';
+    len--;
+  }
 
   MQTT_Client_.setBufferSize(size_);
 
@@ -24,7 +32,7 @@ void MQTT_OTA::handle()
 {
   if ((MQTT_Client_status_ != MQTT_Client_.connected()) && (MQTT_Client_.connected() == true))
   {
-    MQTT_OTA_LOG("\n[MQTT_OTA] MQTT_OTA Subscribe to topic: %s\n", subscribe_topic_);
+    MQTT_OTA_LOG_F("MQTT_OTA Subscribe to topic: %s\n", subscribe_topic_);
     MQTT_Client_.subscribe(subscribe_topic_);
   }
   MQTT_Client_status_ = MQTT_Client_.connected();
@@ -34,7 +42,7 @@ void MQTT_OTA::handle()
     if (millis() - last_time_ > timeout_)
     {
       MQTT_Client_.publish(status_topic_, ABORTED_TIMEOUT);
-      MQTT_OTA_LOG("\n[MQTT_OTA] OTA Timeout! Aborting\n");
+      MQTT_OTA_LOG_F("OTA Timeout! Aborting\n");
       Update.abort();
     }
   }
@@ -67,7 +75,7 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
       if (file_size == 0 || chunk_size == 0 || strlen(hash_MD5) == 0 || strlen(new_firmware_version_) == 0)
       {
         MQTT_Client_.publish(status_topic_, ABORTED_INVALID_FORMAT);
-        MQTT_OTA_LOG("\n[MQTT_OTA] OTA Dibatalkan: Parameter JSON tidak lengkap!\n");
+        MQTT_OTA_LOG_F("OTA Dibatalkan: Parameter JSON tidak lengkap!\n");
         Update.abort();
         return;
       }
@@ -75,7 +83,7 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
       if ((chunk_size + 256) > size_) 
       {
         MQTT_Client_.publish(status_topic_, ABORTED_OVERSIZED_CHUNK);
-        MQTT_OTA_LOG("\n[MQTT_OTA] OTA Dibatalkan: Chunk dari publisher melebihi kapasitas buffer\n");
+        MQTT_OTA_LOG_F("OTA Dibatalkan: Chunk dari publisher melebihi kapasitas buffer\n");
         Update.abort();
         return;
       }
@@ -85,12 +93,12 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
       if (Update.begin(file_size))
       {
         MQTT_Client_.publish(status_topic_, BEGIN_ACKNOWLEDGMENT_OK);
-        MQTT_OTA_LOG("\n[MQTT_OTA] Menerima data OTA...\n");
+        MQTT_OTA_LOG_F("Menerima data OTA...\n");
       }
       else
       {
         MQTT_Client_.publish(status_topic_, BEGIN_ACKNOWLEDGMENT_FAILED);
-        MQTT_OTA_LOG("\n[MQTT_OTA] Update.begin() gagal. Error=%d\n", Update.getError());
+        MQTT_OTA_LOG_F("Update.begin() gagal. Error=%d\n", Update.getError());
         Update.abort();
         return;
       }
@@ -98,7 +106,7 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
     else
     {
       MQTT_Client_.publish(status_topic_, ABORTED_INVALID_FORMAT);
-      MQTT_OTA_LOG("\n[MQTT_OTA] Format payload begin tidak valid (JSON Error): %s\n", json_error.c_str());
+      MQTT_OTA_LOG_F("Format payload begin tidak valid (JSON Error): %s\n", json_error.c_str());
       Update.abort();
       return;
     }
@@ -109,27 +117,27 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
   }
   else if (strstr(topic, END_TOPIC) != NULL)
   {
-    MQTT_OTA_LOG("\n[MQTT_OTA] Menerima sinyal END...\n");
+    MQTT_OTA_LOG_F("Menerima sinyal END...\n");
     
     if (Update.end(true))
     {
       MQTT_Client_.publish(status_topic_, END_FIRMWARE_VALID);
-      MQTT_OTA_LOG("\n[MQTT_OTA] OTA Selesai dan MD5 Valid!\n");
+      MQTT_OTA_LOG_F("OTA Selesai dan MD5 Valid!\n");
       
-      MQTT_OTA_LOG("[MQTT_OTA] Saving Firmware Version: %s\n", new_firmware_version_);
+      MQTT_OTA_LOG_F("Saving Firmware Version: %s\n", new_firmware_version_);
       prefs_.begin("firmware_ver", false);
       prefs_.putString("version", new_firmware_version_);
       prefs_.end();
 
       for (int i=0; i<3000; i++) {MQTT_Client_.loop(); delay(1);}
 
-      MQTT_OTA_LOG("[MQTT_OTA] Restarting...\n\n");
+      MQTT_OTA_LOG_F("Restarting...\n\n");
       ESP.restart();
     }
     else
     {
       MQTT_Client_.publish(status_topic_, END_FIRMWARE_INVALID);
-      MQTT_OTA_LOG("\n[MQTT_OTA] OTA Gagal (Mungkin MD5 Invalid)! Kode Error: %d\n", Update.getError());
+      MQTT_OTA_LOG_F("OTA Gagal (Mungkin MD5 Invalid)! Kode Error: %d\n", Update.getError());
       Update.abort();
       return;
     }

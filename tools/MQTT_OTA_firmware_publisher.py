@@ -12,7 +12,7 @@ MQTT_Port                   = 1883
 MQTT_Username               = ''
 MQTT_Password               = ''
 MQTT_Client_ID              = 'MQTT_OTA_firmware_publisher'
-MQTT_Topic                  = 'device/node_1'
+MQTT_Topic                  = 'MQTT_OTA'
 
 firmware_version            = 'v1.0.0'
 
