@@ -93,7 +93,7 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
       if (Update.begin(file_size))
       {
         MQTT_Client_.publish(status_topic_, BEGIN_ACKNOWLEDGMENT_OK);
-        MQTT_OTA_LOG_F("Menerima data OTA...\n");
+        MQTT_OTA_LOG_F("Menerima data OTA...");
       }
       else
       {
@@ -117,14 +117,14 @@ void MQTT_OTA::MQTT_OTA_callback(char *topic, byte *payload, unsigned int length
   }
   else if (strstr(topic, END_TOPIC) != NULL)
   {
-    MQTT_OTA_LOG_F("Menerima sinyal END...\n");
+    MQTT_OTA_LOG_F("Menerima sinyal END...");
     
     if (Update.end(true))
     {
       MQTT_Client_.publish(status_topic_, END_FIRMWARE_VALID);
-      MQTT_OTA_LOG_F("OTA Selesai dan MD5 Valid!\n");
+      MQTT_OTA_LOG_F("OTA Selesai dan MD5 Valid!");
       
-      MQTT_OTA_LOG_F("Saving Firmware Version: %s\n", new_firmware_version_);
+      MQTT_OTA_LOG_F("Saving Firmware Version: %s", new_firmware_version_);
       prefs_.begin("firmware_ver", false);
       prefs_.putString("version", new_firmware_version_);
       prefs_.end();
